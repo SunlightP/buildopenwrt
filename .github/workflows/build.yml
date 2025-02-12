@@ -33,6 +33,10 @@ jobs:
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+      
+      - name: Fix cache-domains dependency on dnsmasq
+        run: |
+          sed -i 's/dnsmasq/dnsmasq-full/g' openwrt/package/feeds/packages/cache-domains/Makefile || true
 
       # 4. 添加 OpenClash 插件
       - name: Add OpenClash Plugin
