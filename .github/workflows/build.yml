@@ -1,4 +1,4 @@
-name: Build OpenWRT Firmware with Custom Settings
+name: Build OpenWRT Firmware with LuCI Chinese Support and SquashFS
 
 on:
   push:
@@ -13,17 +13,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout OpenWRT source code
-      - name: Checkout repository
+      # 1. Checkout OpenWRT 源代码
+      - name: Checkout OpenWRT repository
         uses: actions/checkout@v2
 
-      # 2. Set up OpenWRT build environment
+      # 2. 设置 OpenWRT 构建环境
       - name: Set up OpenWRT build environment
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential libncurses5-dev zlib1g-dev gawk git-core subversion libssl-dev xsltproc wget unzip
 
-      # 3. Clone OpenWRT source code and install feeds
+      # 3. 克隆 OpenWRT 源代码并安装 Feeds
       - name: Clone OpenWRT source and install feeds
         run: |
           git clone https://github.com/openwrt/openwrt.git
@@ -31,38 +31,38 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # 4. Clone OpenClash package
+      # 4. 克隆 OpenClash 插件源代码
       - name: Clone OpenClash source
         run: |
           cd openwrt
           git clone https://github.com/vernesong/OpenClash.git package/openwrt-packages/OpenClash
 
-      # 5. Install OpenClash plugin
+      # 5. 安装 OpenClash 插件
       - name: Install OpenClash plugin
         run: |
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install openclash
 
-      # 6. Replace dnsmasq with dnsmasq-full
+      # 6. 替换 dnsmasq 为 dnsmasq-full
       - name: Replace dnsmasq with dnsmasq-full
         run: |
           cd openwrt
           sed -i 's/dnsmasq/dnsmasq-full/g' feeds/packages/net/dnsmasq/Makefile
 
-      # 7. Set router IP address to 192.168.50.1
+      # 7. 设置路由器 IP 地址为 192.168.50.1
       - name: Set router IP to 192.168.50.1
         run: |
           cd openwrt
           sed -i 's/option ipaddr '192.168.1.1'/option ipaddr '192.168.50.1'/g' package/base-files/files/etc/config/network
 
-      # 8. Set timezone to Asia/Shanghai
+      # 8. 设置时区为 Asia/Shanghai
       - name: Set timezone to Asia/Shanghai
         run: |
           cd openwrt
           echo "CONFIG_PACKAGE_libc_timezone='Asia/Shanghai'" >> .config
 
-      # 9. Replace NTP servers with China-based servers
+      # 9. 替换 NTP 服务器为中国可用的 NTP 服务器
       - name: Replace NTP servers with China-based servers
         run: |
           cd openwrt
@@ -70,19 +70,34 @@ jobs:
           sed -i 's/1.openwrt.pool.ntp.org/ntp2.aliyun.com/g' feeds/packages/net/ntpd/files/ntpd.config
           sed -i 's/2.openwrt.pool.ntp.org/ntp3.aliyun.com/g' feeds/packages/net/ntpd/files/ntpd.config
 
-      # 10. Configure OpenWRT and install packages
+      # 10. 启用 LuCI Web 界面和中文支持
+      - name: Enable LuCI Web interface and Chinese language pack
+        run: |
+          cd openwrt
+          make menuconfig CONFIG_TARGET_x86_64=y
+          make menuconfig CONFIG_PACKAGE_luci=y
+          make menuconfig CONFIG_PACKAGE_luci-i18n-zh-cn=y
+
+      # 11. 配置文件系统为 SquashFS
+      - name: Set file system to SquashFS
+        run: |
+          cd openwrt
+          make menuconfig CONFIG_TARGET_IMAGES_GZIP=y
+          make menuconfig CONFIG_TARGET_IMAGES_SQUASHFS=y
+
+      # 12. 配置 OpenWRT
       - name: Configure OpenWRT
         run: |
           cd openwrt
           make defconfig
 
-      # 11. Compile OpenWRT firmware
+      # 13. 编译 OpenWRT 固件
       - name: Compile OpenWRT firmware
         run: |
           cd openwrt
           make -j$(nproc)
 
-      # 12. Upload build artifacts
+      # 14. 上传编译结果
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
