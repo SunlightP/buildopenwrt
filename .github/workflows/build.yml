@@ -87,4 +87,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: firmware
-          path: openwrt/bin/targets/
+          path: openwrt/bin/targets/*
