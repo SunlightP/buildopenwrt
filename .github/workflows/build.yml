@@ -84,7 +84,7 @@ jobs:
 
       # 12. Upload build artifacts
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: firmware
           path: openwrt/bin/targets/
