@@ -66,6 +66,7 @@ jobs:
           echo "CONFIG_PACKAGE_dnsmasq-full=y" >> .config
           echo "CONFIG_TARGET_ROOTFS_SQUASHFS=y" >> .config
           echo "CONFIG_PACKAGE_luci-theme-bootstrap=y" >> .config
+          echo "CONFIG_PACKAGE_ruby=n" >> .config
 
       # 7. 设置默认 IP 为 192.168.50.1
       - name: Set Default IP to 192.168.50.1
