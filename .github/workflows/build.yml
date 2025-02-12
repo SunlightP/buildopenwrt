@@ -1,0 +1,90 @@
+name: Build OpenWRT Firmware with Custom Settings
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout OpenWRT source code
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # 2. Set up OpenWRT build environment
+      - name: Set up OpenWRT build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses5-dev zlib1g-dev gawk git-core subversion libssl-dev xsltproc wget unzip
+
+      # 3. Clone OpenWRT source code and install feeds
+      - name: Clone OpenWRT source and install feeds
+        run: |
+          git clone https://github.com/openwrt/openwrt.git
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      # 4. Clone OpenClash package
+      - name: Clone OpenClash source
+        run: |
+          cd openwrt
+          git clone https://github.com/vernesong/OpenClash.git package/openwrt-packages/OpenClash
+
+      # 5. Install OpenClash plugin
+      - name: Install OpenClash plugin
+        run: |
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install openclash
+
+      # 6. Replace dnsmasq with dnsmasq-full
+      - name: Replace dnsmasq with dnsmasq-full
+        run: |
+          cd openwrt
+          sed -i 's/dnsmasq/dnsmasq-full/g' feeds/packages/net/dnsmasq/Makefile
+
+      # 7. Set router IP address to 192.168.50.1
+      - name: Set router IP to 192.168.50.1
+        run: |
+          cd openwrt
+          sed -i 's/option ipaddr '192.168.1.1'/option ipaddr '192.168.50.1'/g' package/base-files/files/etc/config/network
+
+      # 8. Set timezone to Asia/Shanghai
+      - name: Set timezone to Asia/Shanghai
+        run: |
+          cd openwrt
+          echo "CONFIG_PACKAGE_libc_timezone='Asia/Shanghai'" >> .config
+
+      # 9. Replace NTP servers with China-based servers
+      - name: Replace NTP servers with China-based servers
+        run: |
+          cd openwrt
+          sed -i 's/0.openwrt.pool.ntp.org/ntp1.aliyun.com/g' feeds/packages/net/ntpd/files/ntpd.config
+          sed -i 's/1.openwrt.pool.ntp.org/ntp2.aliyun.com/g' feeds/packages/net/ntpd/files/ntpd.config
+          sed -i 's/2.openwrt.pool.ntp.org/ntp3.aliyun.com/g' feeds/packages/net/ntpd/files/ntpd.config
+
+      # 10. Configure OpenWRT and install packages
+      - name: Configure OpenWRT
+        run: |
+          cd openwrt
+          make defconfig
+
+      # 11. Compile OpenWRT firmware
+      - name: Compile OpenWRT firmware
+        run: |
+          cd openwrt
+          make -j$(nproc)
+
+      # 12. Upload build artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: firmware
+          path: openwrt/bin/targets/
